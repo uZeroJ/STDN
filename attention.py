@@ -1,9 +1,11 @@
-from keras.layers import Layer
-import keras.backend as K
+from tensorflow.python.keras.layers import Layer
+from tensorflow.python.keras import backend as K
+
+
 class Attention(Layer):
     def __init__(self, method=None, **kwargs):
         self.supports_masking = True
-        if method != 'lba' and method !='ga' and method != 'cba' and method is not None:
+        if method != 'lba' and method != 'ga' and method != 'cba' and method is not None:
             raise ValueError('attention method is not supported')
         self.method = method
         super(Attention, self).__init__(**kwargs)
@@ -13,14 +15,19 @@ class Attention(Layer):
             self.att_size = input_shape[0][-1]
             self.query_dim = input_shape[1][-1]
             if self.method == 'ga' or self.method == 'cba':
-                self.Wq = self.add_weight(name='kernal_query_features', shape=(self.query_dim, self.att_size), initializer='glorot_normal', trainable=True)
+                self.Wq = self.add_weight(name='kernal_query_features',
+                                          shape=(self.query_dim, self.att_size),
+                                          initializer='glorot_normal', trainable=True)
         else:
             self.att_size = input_shape[-1]
 
         if self.method == 'cba':
-            self.Wh = self.add_weight(name='kernal_hidden_features', shape=(self.att_size,self.att_size), initializer='glorot_normal', trainable=True)
+            self.Wh = self.add_weight(name='kernal_hidden_features',
+                                      shape=(self.att_size, self.att_size),
+                                      initializer='glorot_normal', trainable=True)
         if self.method == 'lba' or self.method == 'cba':
-            self.v = self.add_weight(name='query_vector', shape=(self.att_size, 1), initializer='zeros', trainable=True)
+            self.v = self.add_weight(name='query_vector', shape=(self.att_size, 1),
+                                     initializer='zeros', trainable=True)
 
         super(Attention, self).build(input_shape)
 
@@ -34,7 +41,7 @@ class Attention(Layer):
         if isinstance(inputs, list) and len(inputs) == 2:
             memory, query = inputs
             if self.method is None:
-                return memory[:,-1,:]
+                return memory[:, -1, :]
             elif self.method == 'cba':
                 hidden = K.dot(memory, self.Wh) + K.expand_dims(K.dot(query, self.Wq), 1)
                 hidden = K.tanh(hidden)
@@ -53,7 +60,7 @@ class Attention(Layer):
             else:
                 memory = inputs
             if self.method is None:
-                return memory[:,-1,:]
+                return memory[:, -1, :]
             elif self.method == 'cba':
                 hidden = K.dot(memory, self.Wh)
                 hidden = K.tanh(hidden)
@@ -86,7 +93,7 @@ class Attention(Layer):
 class SimpleAttention(Layer):
     def __init__(self, method=None, **kwargs):
         self.supports_masking = True
-        if method != 'lba' and method !='ga' and method != 'cba' and method is not None:
+        if method != 'lba' and method != 'ga' and method != 'cba' and method is not None:
             raise ValueError('attention method is not supported')
         self.method = method
         super(SimpleAttention, self).__init__(**kwargs)
@@ -100,13 +107,17 @@ class SimpleAttention(Layer):
             self.query_dim = self.att_size
 
         if self.method == 'cba' or self.method == 'ga':
-            self.Wq = self.add_weight(name='kernal_query_features', shape=(self.query_dim, self.att_size),
+            self.Wq = self.add_weight(name='kernal_query_features',
+                                      shape=(self.query_dim, self.att_size),
                                       initializer='glorot_normal', trainable=True)
         if self.method == 'cba':
-            self.Wh = self.add_weight(name='kernal_hidden_features', shape=(self.att_size, self.att_size), initializer='glorot_normal', trainable=True)
+            self.Wh = self.add_weight(name='kernal_hidden_features',
+                                      shape=(self.att_size, self.att_size),
+                                      initializer='glorot_normal', trainable=True)
 
         if self.method == 'lba' or self.method == 'cba':
-            self.v = self.add_weight(name='query_vector', shape=(self.att_size, 1), initializer='zeros', trainable=True)
+            self.v = self.add_weight(name='query_vector', shape=(self.att_size, 1),
+                                     initializer='zeros', trainable=True)
 
         super(SimpleAttention, self).build(input_shape)
 
@@ -130,7 +141,7 @@ class SimpleAttention(Layer):
             memory = inputs
 
         input_shape = K.int_shape(memory)
-        if len(input_shape) >3:
+        if len(input_shape) > 3:
             input_length = input_shape[1]
             memory = K.reshape(memory, (-1,) + input_shape[2:])
             if mask is not None:
@@ -138,8 +149,8 @@ class SimpleAttention(Layer):
             if query is not None:
                 raise ValueError('query can be not supported')
 
-        last = memory[:,-1,:]
-        memory = memory[:,:-1,:]
+        last = memory[:, -1, :]
+        memory = memory[:, :-1, :]
         if query is None:
             query = last
         else:
@@ -162,13 +173,13 @@ class SimpleAttention(Layer):
 
         s = K.softmax(s)
         if mask is not None:
-            mask = mask[:,:-1]
+            mask = mask[:, :-1]
             s *= K.cast(mask, dtype='float32')
             sum_by_time = K.sum(s, axis=-1, keepdims=True)
             s = s / (sum_by_time + K.epsilon())
-        #return [K.concatenate([K.sum(memory * K.expand_dims(s), axis=1), last], axis=-1), s]
+        # return [K.concatenate([K.sum(memory * K.expand_dims(s), axis=1), last], axis=-1), s]
         result = K.concatenate([K.sum(memory * K.expand_dims(s), axis=1), last], axis=-1)
-        if len(input_shape)>3:
+        if len(input_shape) > 3:
             output_shape = K.int_shape(result)
             return K.reshape(result, (-1, input_shape[1], output_shape[-1]))
         else:
@@ -193,19 +204,18 @@ class SimpleAttention(Layer):
             att_size = input_shape[-1]
             seq_len = input_shape[1]
             batch = input_shape[0]
-        #shape2 = (batch, seq_len, 1)
-        if len(input_shape)>3:
+        # shape2 = (batch, seq_len, 1)
+        if len(input_shape) > 3:
             if self.method is not None:
-                shape1 = (batch, seq_len, att_size*2)
+                shape1 = (batch, seq_len, att_size * 2)
             else:
                 shape1 = (batch, seq_len, att_size)
-            #return [shape1, shape2]
+            # return [shape1, shape2]
             return shape1
         else:
             if self.method is not None:
-                shape1 = (batch, att_size*2)
+                shape1 = (batch, att_size * 2)
             else:
                 shape1 = (batch, att_size)
-            #return [shape1, shape2]
+            # return [shape1, shape2]
             return shape1
-

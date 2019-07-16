@@ -73,7 +73,7 @@ class file_loader:
 
         for t in range(time_start, time_end):
             if t%100 == 0:
-                print("Now sampling at {0} timeslots.".format(t))
+                print(("Now sampling at {0} timeslots.".format(t)))
             for x in range(data.shape[1]):
                 for y in range(data.shape[2]):
                     
