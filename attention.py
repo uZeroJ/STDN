@@ -12,8 +12,11 @@ class Attention(Layer):
 
     def build(self, input_shape):
         if isinstance(input_shape, list):
-            self.att_size = input_shape[0][-1]
-            self.query_dim = input_shape[1][-1]
+            # ZJ: convert from Dimension to int
+            # self.att_size = input_shape[0][-1]
+            self.att_size = input_shape[0][-1].value
+            # self.query_dim = input_shape[1][-1]
+            self.query_dim = input_shape[1][-1].value
             if self.method == 'ga' or self.method == 'cba':
                 self.Wq = self.add_weight(name='kernal_query_features',
                                           shape=(self.query_dim, self.att_size),
